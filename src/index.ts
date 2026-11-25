@@ -1,8 +1,10 @@
 import { basekit, FieldCode, FieldComponent, FieldType } from '@lark-base-open/faas-sdk';
+import { ATTACHMENT_DOMAINS, buildImageContent, MAX_IMAGE_REQUEST_BYTES } from './image-input';
 
 const DEEPSEEK_HOST = 'api.deepseek.com';
 const DEEPSEEK_URL = `https://${DEEPSEEK_HOST}/chat/completions`;
 const DEFAULT_MODEL = 'deepseek-flash';
+const IMAGE_MODELS = [DEFAULT_MODEL, 'deepseek-v4-flash', 'deepseek-v4-flash-vision-exp'];
 const DEFAULT_THINKING_MODE = 'disabled';
 const DEFAULT_REASONING_EFFORT = 'high';
 const REASONING_EFFORT_OPTIONS = [
@@ -25,7 +27,7 @@ function selectValue(selection: unknown): unknown {
   return selection;
 }
 
-basekit.addDomainList([DEEPSEEK_HOST]);
+basekit.addDomainList([DEEPSEEK_HOST, ...ATTACHMENT_DOMAINS]);
 
 basekit.addField({
   formItems: [
@@ -39,6 +41,14 @@ basekit.addField({
       },
       validator: { required: true },
       tooltips: [{ type: 'text', content: '点击提示词右侧的「引用字段」，插入当前记录的字段内容。' }],
+    },
+    {
+      key: 'imageSource',
+      label: '图片来源',
+      component: FieldComponent.FieldSelect,
+      props: { mode: 'single', supportType: [FieldType.Attachment], placeholder: '选择存放图片的附件列' },
+      validator: { required: false },
+      tooltips: [{ type: 'text', content: '选填。读取当前行的 JPEG、PNG、GIF 或 WebP 图片，图片使用 deepseek-flash。' }],
     },
     {
       key: 'apiKey',
@@ -103,7 +113,24 @@ basekit.addField({
       return { code: FieldCode.ConfigError };
     }
 
+    const attachments: unknown = params.imageSource ?? [];
+    if (!Array.isArray(attachments) || (attachments.length && !IMAGE_MODELS.includes(model))) {
+      return { code: FieldCode.ConfigError };
+    }
+
     try {
+      const content = attachments.length ? await buildImageContent(prompt, attachments, context) : prompt;
+      if (content === null) return { code: FieldCode.InvalidArgument };
+      const body = JSON.stringify({
+        model,
+        thinking: { type: thinkingMode },
+        reasoning_effort: thinkingEnabled ? reasoningEffort : undefined,
+        stream: false,
+        messages: [{ role: 'user', content }],
+      });
+      if (attachments.length && Buffer.byteLength(body) > MAX_IMAGE_REQUEST_BYTES) {
+        return { code: FieldCode.InvalidArgument };
+      }
       const response = await context.fetch(DEEPSEEK_URL, {
         method: 'POST',
         headers: {
@@ -112,13 +139,7 @@ basekit.addField({
         },
         redirect: 'error',
         timeout: thinkingEnabled ? 180_000 : 50_000,
-        body: JSON.stringify({
-          model,
-          thinking: { type: thinkingMode },
-          reasoning_effort: thinkingEnabled ? reasoningEffort : undefined,
-          stream: false,
-          messages: [{ role: 'user', content: prompt }],
-        }),
+        body,
       });
 
       if (!response.ok) {

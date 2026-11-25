@@ -1,16 +1,19 @@
 # DeepSeek Flash 字段捷径
 
-飞书多维表格的 FaaS 字段捷径。每次运行读取当前记录中配置的字段值，组成提示词，调用字段设置里选定的 DeepSeek 模型。飞书将返回的正文填入当前行的捷径单元格。插件直接使用飞书运行时发请求，无需自建服务器。
+飞书多维表格的 FaaS 字段捷径。每次运行读取当前记录中配置的字段值和可选的图片附件，调用字段设置里选定的 DeepSeek 模型。飞书将返回的正文填入当前行的捷径单元格。插件直接使用飞书运行时发请求，无需自建服务器。
 
 ## 配置字段
 
 1. 新建 **DeepSeek Flash** 字段捷径，填写 **DeepSeek API Key**。可以在 [DeepSeek 开放平台](https://platform.deepseek.com/api_keys) 创建 Key。
 2. 在 **提示词** 中写指令。把光标放在需要插入数据的位置，点击右侧「引用字段」并选择当前表中的列。升级时，若使用过 `{{字段1}}` 等旧版占位符，请改为飞书插入的字段标签。
-3. 在 **模型名** 里手动填写 DeepSeek 模型 ID，例如 `deepseek-flash` 或 `deepseek-v4-pro`。留空时使用 `deepseek-flash`，模型是否可用由 DeepSeek API 决定。[DeepSeek Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)
-4. 在 **思考模式** 里选择开启或关闭，默认关闭。开启时可选 **思考强度** 为低、高或最高，默认高。关闭模式时强度设置不生效。单元格写入模型的最终回复。[DeepSeek 思考模式](https://api-docs.deepseek.com/guides/thinking_mode/)
-5. 保存后先在一行示例数据上生成，确认结果，再按需批量生成或启用自动更新。
+3. 要识别图片时，在选填的 **图片来源** 里选择一个「附件」字段。可以在同一个单元格上传多张 JPEG、PNG、GIF 或 WebP 图片。提示词例如「读出截图中的订单号，只输出订单号」。[飞书附件字段文档](https://github.com/Lark-Base/customAI-shortcut/blob/master/faas.md#附件字段)
+4. 在 **模型名** 里填写 DeepSeek 模型 ID。使用图片时填 `deepseek-flash` 或留空。纯文本时也可使用 `deepseek-v4-pro`。[DeepSeek 图像理解文档](https://api-docs.deepseek.com/zh-cn/guides/vision/)
+5. 在 **思考模式** 里选择开启或关闭，默认关闭。开启时可选 **思考强度** 为低、高或最高，默认高。关闭模式时强度设置不生效。单元格写入模型的最终回复。[DeepSeek 思考模式](https://api-docs.deepseek.com/guides/thinking_mode/)
+6. 保存后先在一行示例数据上生成，确认结果，再按需批量生成或启用自动更新。
 
 提示词可纯手写，也可以在任意位置重复插入同一个引用。字段类型和取值方式由飞书的「引用字段」控件决定。
+
+图片来源未选或当前行附件为空时，按纯文本处理。附件列有内容时，捷径读取当前行的图片，经飞书运行时下载并随提示词发送给 DeepSeek。若附件中没有可处理的图片，会返回参数错误。内联图片每张最多 32 MiB，编码后的整个请求最多 48 MiB。[DeepSeek 图像输入限制](https://api-docs.deepseek.com/zh-cn/guides/vision/#限制)
 
 Key 填在字段设置的普通输入框里。请将能查看或编辑字段配置的成员视为可以接触这把 Key，并在调试或使用时按表格的数据权限决定哪些内容可以发送给 DeepSeek。源码和发布包只包含字段定义，不包含实际 Key。
 
