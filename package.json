@@ -1,0 +1,16 @@
+{
+  "name": "feishu-deepseek-field-shortcut",
+  "version": "1.3.0",
+  "private": true,
+  "scripts": {
+    "start": "lark-base-open-cli start:field",
+    "build": "lark-base-open-cli build:field",
+    "pack": "lark-base-open-cli pack:field"
+  },
+  "dependencies": {
+    "@lark-base-open/faas-sdk": "1.0.1-alpha.8"
+  },
+  "devDependencies": {
+    "@lark-base-open/cli": "1.0.1-alpha.10"
+  }
+}
